@@ -24,7 +24,6 @@ class ClientThread(threading.Thread):
                 data = self.client_ip.recv(size).decode("UTF-8")
                 # получим время сообщения
                 time_of_message = time.strftime("%Y-%m-%d %H:%M:%S")
-                # показать сообщения, которые были добавлены в память
                 if data == "exit":
                     self.client_ip.send(bytes("Buy {}!".format(self.name), "utf-8"))
                     self.client_ip.close()
