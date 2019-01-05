@@ -1,63 +1,66 @@
-import socket
-import threading
-import time
+from socket import AF_INET, socket, SOCK_STREAM
+from threading import Thread
+import tkinter
 
 
-class ClientThread(threading.Thread):
-    # инициализация
-    def __init__(self, client_ip, client_port):
-        threading.Thread.__init__(self)
-        self.client_ip = client_ip
-        self.client_port = client_port
-        print(bytes("New server socket thread started for {}: {}".format(self.client_ip, self.client_port), "utf-8"))
-
-
-    def run(self):
-        self.client_ip.send(bytes("Type your name and press enter", "utf-8"))
-        self.name = client_ip.recv(size).decode("utf-8")
-        self.client_ip.send(bytes("Welcome {} to chat".format(self.name), "utf-8"))
-        message = "{} has joined to chat"
-        self.broadcast(bytes(message.format(self.name), "utf-8"))
-        clients[self.client_ip] = self.name
-        while True:
-            try:
-                data = self.client_ip.recv(size).decode("UTF-8")
-                # получим время сообщения
-                time_of_message = time.strftime("%Y-%m-%d %H:%M:%S")
-                if data == "exit":
-                    self.client_ip.send(bytes("Buy {}!".format(self.name), "utf-8"))
-                    self.client_ip.close()
-                    del clients[self.client_ip]
-                    message = "{} has left the chat."
-                    self.broadcast(bytes(message.format(self.name), "utf-8"))
-                    break
-                else:
-                    self.broadcast(data, self.name + ": ")
-            except:
-                pass
-            
-    def broadcast(self, message, prefix=""):
-        for sock_client in clients:
-            sock_client.send(bytes("{} {}".format(prefix, message), "utf-8"))
-
-
-clients = {}
-
-
-ip = 'localhost'
-port = 9090
-size = 1024
-connection = 5
-
-with socket.socket() as sock:
-    sock.bind((ip, port))
-    threads = []
-
+def receive():
     while True:
-        sock.listen(connection)
-        client_ip, client_port = sock.accept()
-        newthread = ClientThread(client_ip, client_port)
-        newthread.start()
-        threads.append(newthread)
-    for t in threads:
-        t.join()
+        try:
+            msg = client_socket.recv(size).decode("utf-8")
+            msg_list.insert(tkinter.END, msg)
+        except OSError:
+            break
+
+
+def send(event=None):
+    msg = my_msg.get()
+    my_msg.set("")
+    client_socket.send(bytes(msg, "utf-8"))
+    if msg == "exit":
+        client_socket.close()
+        top.quit()
+
+
+def on_closing(event=None):
+    my_msg.set("exit")
+    send()
+
+top = tkinter.Tk()
+top.title("My test chat")
+
+messages_frame = tkinter.Frame(top)
+my_msg = tkinter.StringVar()
+my_msg.set("Your message")
+scrollbar = tkinter.Scrollbar(messages_frame)
+msg_list = tkinter.Listbox(messages_frame, height=15, width=50, yscrollcommand=scrollbar.set)
+scrollbar.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+msg_list.pack(side=tkinter.LEFT, fill=tkinter.BOTH)
+msg_list.pack()
+messages_frame.pack()
+
+entry_field = tkinter.Entry(top, textvariable=my_msg)
+entry_field.bind("<Return>", send)
+entry_field.pack()
+send_button = tkinter.Button(top, text="Send", command=send)
+send_button.pack()
+
+top.protocol("WM_DELETE_WINDOW", on_closing)
+"""
+HOST = input('Enter host: ')
+PORT = input('Enter port: ')
+if not PORT:
+    PORT = 9090
+else:
+    PORT = int(PORT)
+"""
+HOST = 'localhost'
+PORT = 9090
+size = 1024
+ADDR = (HOST, PORT)
+
+client_socket = socket(AF_INET, SOCK_STREAM)
+client_socket.connect(ADDR)
+
+receive_thread = Thread(target=receive)
+receive_thread.start()
+tkinter.mainloop()
